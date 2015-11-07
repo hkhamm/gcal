@@ -74,19 +74,27 @@
   -->
 
 {% if session.calendars is defined %}
-<div class="container-fluid">
+<form>
+<label for="calendars">Calendars</label>
+<div class="container-fluid" id="calendars">
   {% set i = 0 %}
   <div class="row">
-    <div class="list-group pull-left col-md-4">
+    <div class="form-group pull-left col-md-4">
     {% for cal in session.calendars if cal.selected %}
-      <button type="button" class="list-group-item col-md-4"
-              id="cal-btn" data-cal_id={{ cal.id }}>
-        {{ cal.summary }}
-      </button>
+      <div class="checkbox">
+        <label>
+          <input type="checkbox" name="calendar" data-value="{{ cal.summary }}">
+          {{ cal.summary }}
+        </label>
+      </div>
+{#      <button type="button" class="list-group-item col-md-4"#}
+{#              id="cal-btn" data-cal_id={{ cal.id }}>#}
+{#        {{ cal.summary }}#}
+{#      </button>#}
       {% if loop.index is divisibleby 3 %}
         {% set i = i + 1 %}
         </div>
-        <div class="list-group pull-left col-md-4">
+        <div class="form-group pull-left col-md-4">
         {% if i == 2 %}
           {% set i = 0 %}
           </div>
@@ -97,6 +105,8 @@
     </div>
   </div>
 </div>
+<button type="submit" class="btn btn-default">Submit</button>
+</form>
 {% endif %}
 
 {#  <div class="row">#}

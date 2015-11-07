@@ -13,7 +13,7 @@ $(function() {
 });
 
 
-$('button[id="cal-btn"]').click(function() {
-  var calId = $(this).data('cal_id');
+$('input[name="calendar"]').click(function() {
+  var calId = $(this).val();
   console.log(calId);
 });
