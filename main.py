@@ -197,8 +197,7 @@ def oauth2callback():
 @app.route('/set-range', methods=['POST'])
 def set_range():
     """
-    User chose a date range with the bootstrap daterange
-    widget.
+    User chose a date range with the bootstrap daterange widget.
     :return: redirects to the choose page
     """
     app.logger.debug("Entering setrange")
