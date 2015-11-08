@@ -5,15 +5,17 @@ Fetches appointment data from a selection of a user's Google calendars.
 
 1) Download the repository.
 
-2) Edit copy CONFIG.base.py to CONFIG.py and configure for your environment.
+2) Obtain a *Client Id* and *Client Secret* for Google [here](https://auth0.com/docs/connections/social/google) and download as a JSON file to `/path/to/proj6-gcal`.
 
-3) Setup the virtual enviroment:
+3) Edit copy CONFIG.base.py to CONFIG.py and configure for your environment. Include the client secret JSON file.
+
+4) Setup the virtual enviroment:
 ```shell
 cd /path/to/proj5-gcal
 make
 ```
 
-4) Run the flask app:
+5) Run the flask app:
 ```shell
 cd /path/to/proj6-gcal
 source env/bin/activate
