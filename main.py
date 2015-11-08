@@ -201,7 +201,7 @@ def set_range():
     :return: redirects to the choose page
     """
     app.logger.debug("Entering setrange")
-    flask.flash("Setrange gave us '{}'".format(request.form.get('daterange')))
+    # flask.flash("Setrange gave us '{}'".format(request.form.get('daterange')))
 
     daterange = request.form.get('daterange')
     flask.session['daterange'] = daterange
@@ -233,7 +233,7 @@ def set_checked_calendars():
             calendar_str += calendar + ", "
         else:
             calendar_str += calendar
-    flask.flash("Selected: '{}'".format(calendar_str))
+    # flask.flash("Selected: '{}'".format(calendar_str))
 
     flask.session['checked_calendars'] = calendars
 
