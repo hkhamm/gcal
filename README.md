@@ -5,7 +5,7 @@ Fetches appointment data from a selection of a user's Google calendars.
 
 1) Download the repository.
 
-2) Edit CONFIG.py for your environment (including your mongodb settings).
+2) Edit copy CONFIG.base.py to CONFIG.py and configure for your environment.
 
 3) Setup the virtual enviroment:
 ```shell
