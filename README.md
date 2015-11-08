@@ -7,7 +7,7 @@ Fetches appointment data from a selection of a user's Google calendars.
 
 2) Obtain a *Client Id* and *Client Secret* for Google [here](https://auth0.com/docs/connections/social/google) and download as a JSON file to `/path/to/proj6-gcal`.
 
-3) Edit copy CONFIG.base.py to CONFIG.py and configure for your environment. Include the client secret JSON file.
+3) Copy CONFIG.base.py to CONFIG.py and edit for your environment. Include the client secret JSON file.
 
 4) Setup the virtual enviroment:
 ```shell
