@@ -11,7 +11,7 @@ Fetches appointment data from a selection of a user's Google calendars.
 
 4) Setup the virtual enviroment:
 ```shell
-cd /path/to/proj5-gcal
+cd /path/to/proj6-gcal
 make
 ```
 
