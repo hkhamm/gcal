@@ -340,14 +340,19 @@ def list_busy_times(service):
         events = service.events().list(calendarId=cal_id).execute()
         for event in events['items']:
             try:
+                transparency = event['transparency']
+                available = True
+            except:
+                available = False
+            try:
                 event_start = arrow.get(event['start']['dateTime'])
                 event_end = arrow.get(event['end']['dateTime'])
             except:
-                app.logger.debug('Failed to get dateTime')
                 event_start = arrow.get(event['start']['date'])
                 event_end = arrow.get(event['end']['date'])
 
-            if event_start >= begin_date and event_end <= end_date:
+            if (event_start >= begin_date and event_end <= end_date and
+                    not available):
                 result_dict[event_start.isoformat()] = event
 
     for item in sorted(result_dict):
