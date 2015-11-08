@@ -57,15 +57,18 @@
 {% endwith %}
 
 {% if session.busy_times is defined %}
-  <label for="busy-times">Events</label>
-  <ul class="list-group" id="busy-times">
-  {% for event in session.busy_times %}
-    <li class="list-group-item">
-      {{ event.summary }}: {{ event.start.dateTime | fmtdatetime }} -
-      {{ event.end.dateTime | fmtdatetime }}
-    </li>
-  {% endfor %}
-  </ul>
+  <form action="/clear-session" method="post">
+    <label for="busy-times">Events</label>
+    <ul class="list-group" id="busy-times">
+    {% for event in session.busy_times %}
+      <li class="list-group-item">
+        {{ event.summary }}: {{ event.start.dateTime | fmtdatetime }} -
+        {{ event.end.dateTime | fmtdatetime }}
+      </li>
+    {% endfor %}
+    </ul>
+    <button type="submit" class="btn btn-default">Clear Session</button>
+  </form>
   <hr>
 {% endif %}
 

@@ -240,6 +240,12 @@ def set_checked_calendars():
     return flask.redirect(flask.url_for("get_busy_times"))
 
 
+@app.route('/clear-session', methods=['POST'])
+def clear_session():
+    flask.session.clear()
+    return flask.redirect(flask.url_for('index'))
+
+
 #  Initialize session variables
 
 def init_session_values():
