@@ -40,12 +40,16 @@ def index():
 
 @app.route("/choose")
 def choose():
+    """
+    Renders the index.html page after a choose request.
+    """
     # We'll need authorization to list calendars
     # I wanted to put what follows into a function, but had
     # to pull it back here because the redirect has to be a
     # 'return'
     app.logger.debug("Checking credentials for Google calendar access")
     credentials = valid_credentials()
+
     if not credentials:
         app.logger.debug("Redirecting to authorization")
         return flask.redirect(flask.url_for('oauth2callback'))
@@ -53,6 +57,26 @@ def choose():
     gcal_service = get_gcal_service(credentials)
     app.logger.debug("Returned from get_gcal_service")
     flask.session['calendars'] = list_calendars(gcal_service)
+
+    return render_template('index.html')
+
+
+@app.route("/get-busy-times")
+def get_busy_times():
+    """
+    Renders the index.html page after a get-busy-times request.
+    """
+    app.logger.debug("Checking credentials for Google calendar access")
+    credentials = valid_credentials()
+
+    if not credentials:
+        app.logger.debug("Redirecting to authorization")
+        return flask.redirect(flask.url_for('oauth2callback'))
+
+    gcal_service = get_gcal_service(credentials)
+    app.logger.debug("Returned from get_gcal_service")
+    flask.session['busy_times'] = list_busy_times(gcal_service)
+
     return render_template('index.html')
 
 
@@ -86,7 +110,8 @@ def valid_credentials():
     Returns OAuth2 credentials if we have valid
     credentials in the session.  This is a 'truthy' value.
     Return None if we don't have credentials, or if they
-    have expired or are otherwise invalid.  This is a 'falsy' value. 
+    have expired or are otherwise invalid.  This is a 'falsy' value.
+    :return: a Google OAuth2 credentials object
     """
     if 'credentials' not in flask.session:
         return None
@@ -94,9 +119,9 @@ def valid_credentials():
     credentials = client.OAuth2Credentials.from_json(
         flask.session['credentials'])
 
-    if (credentials.invalid or
-            credentials.access_token_expired):
+    if credentials.invalid or credentials.access_token_expired:
         return None
+
     return credentials
 
 
@@ -109,12 +134,13 @@ def get_gcal_service(credentials):
     control flow will be interrupted by authorization, and we'll
     end up redirected back to /choose *without a service object*.
     Then the second call will succeed without additional authorization.
-    :param credentials:
+    :param credentials: a Google OAuth2 credentials object
     """
     app.logger.debug("Entering get_gcal_service")
     http_auth = credentials.authorize(httplib2.Http())
     service = discovery.build('calendar', 'v3', http=http_auth)
     app.logger.debug("Returning service")
+
     return service
 
 
@@ -157,6 +183,7 @@ def oauth2callback():
         # but for the moment I'll just log it and go back to
         # the main screen
         app.logger.debug("Got credentials")
+
         return flask.redirect(flask.url_for('choose'))
 
 
@@ -167,24 +194,51 @@ def oauth2callback():
 #   Setting an option sends us back to the main display
 #      page, where we may put the new information to use.
 
-@app.route('/setrange', methods=['POST'])
+@app.route('/set-range', methods=['POST'])
 def set_range():
     """
     User chose a date range with the bootstrap daterange
     widget.
+    :return: redirects to the choose page
     """
     app.logger.debug("Entering setrange")
-    flask.flash("Setrange gave us '{}'".format(
-        request.form.get('daterange')))
+    flask.flash("Setrange gave us '{}'".format(request.form.get('daterange')))
+
     daterange = request.form.get('daterange')
     flask.session['daterange'] = daterange
+
     daterange_parts = daterange.split()
     flask.session['begin_date'] = interpret_date(daterange_parts[0])
     flask.session['end_date'] = interpret_date(daterange_parts[2])
+
     app.logger.debug("Setrange parsed {} - {}  dates as {} - {}".format(
         daterange_parts[0], daterange_parts[1],
         flask.session['begin_date'], flask.session['end_date']))
+
     return flask.redirect(flask.url_for("choose"))
+
+
+@app.route('/set-checked-calendars', methods=['POST'])
+def set_checked_calendars():
+    """
+    User chose one or more calendars from the list.
+    :return: redirects to the get-busy-times page
+    """
+    app.logger.debug("Entering get_busy_times")
+    calendars = request.form.getlist('calendar')
+
+    calendar_str = ""
+    len_calendars = len(calendars)
+    for calendar in calendars:
+        if calendars.index(calendar) < len_calendars - 1:
+            calendar_str += calendar + ", "
+        else:
+            calendar_str += calendar
+    flask.flash("Selected: '{}'".format(calendar_str))
+
+    flask.session['checked_calendars'] = calendars
+
+    return flask.redirect(flask.url_for("get_busy_times"))
 
 
 #  Initialize session variables
@@ -198,11 +252,13 @@ def init_session_values():
     now = arrow.now('local')
     tomorrow = now.replace(days=+1)
     nextweek = now.replace(days=+7)
+
     flask.session["begin_date"] = tomorrow.floor('day').isoformat()
     flask.session["end_date"] = nextweek.ceil('day').isoformat()
     flask.session["daterange"] = "{} - {}".format(
         tomorrow.format("MM/DD/YYYY"),
         nextweek.format("MM/DD/YYYY"))
+
     # Default time span each day, 9 to 5
     flask.session["begin_time"] = interpret_time("9am")
     flask.session["end_time"] = interpret_time("5pm")
@@ -214,10 +270,12 @@ def interpret_time(text):
     interpret as ISO format with local timezone.
     May throw exception if time can't be interpreted. In that
     case it will also flash a message explaining accepted formats.
-    :param text:
+    :param text: a human-compatible time
+    :return: an arrow date time object
     """
     app.logger.debug("Decoding time '{}'".format(text))
     time_formats = ["ha", "h:mma", "h:mm a", "H:mm"]
+
     try:
         as_arrow = arrow.get(text, time_formats).replace(tzinfo=tz.tzlocal())
         app.logger.debug("Succeeded interpreting time")
@@ -226,6 +284,7 @@ def interpret_time(text):
         flask.flash("Time '{}' didn't match accepted formats 13:30 or 1:30pm"
                     .format(text))
         raise
+
     return as_arrow.isoformat()
 
 
@@ -233,7 +292,8 @@ def interpret_date(text):
     """
     Convert text of date to ISO format used internally,
     with the local time zone.
-    :param text:
+    :param text: an ISO date
+    :return: an arrow date time object
     """
     try:
         as_arrow = arrow.get(text, "MM/DD/YYYY").replace(
@@ -241,19 +301,55 @@ def interpret_date(text):
     except:
         flask.flash("Date '{}' didn't fit expected format MM/DD/YYYY")
         raise
+
     return as_arrow.isoformat()
 
 
-def next_day(isotext):
+def next_day(iso_text):
     """
     ISO date + 1 day (used in query to Google calendar)
-    :param isotext:
+    :param iso_text: an ISO date
+    :return: an arrow date time object
     """
-    as_arrow = arrow.get(isotext)
+    as_arrow = arrow.get(iso_text)
+
     return as_arrow.replace(days=+1).isoformat()
 
 
 #  Functions (NOT pages) that return some information
+
+def list_busy_times(service):
+    """
+    Lists the busy times from the selected calendar in ascending order.
+    :param service: a google 'service' object
+    :return: a sorted list of busy times for the selected calendar(s)
+    """
+    app.logger.debug('Entering list_busy_times')
+    result_dict = {}
+    result = []
+    begin_date = arrow.get(flask.session["begin_date"])
+    end_date = arrow.get(flask.session['end_date'])
+
+    app.logger.debug('Events:')
+    for cal_id in flask.session['checked_calendars']:
+        events = service.events().list(calendarId=cal_id).execute()
+        for event in events['items']:
+            try:
+                event_start = arrow.get(event['start']['dateTime'])
+                event_end = arrow.get(event['end']['dateTime'])
+            except:
+                app.logger.debug('Failed to get dateTime')
+                event_start = arrow.get(event['start']['date'])
+                event_end = arrow.get(event['end']['date'])
+
+            if event_start >= begin_date and event_end <= end_date:
+                result_dict[event_start.isoformat()] = event
+
+    for item in sorted(result_dict):
+        result.append(result_dict[item])
+
+    return result
+
 
 def list_calendars(service):
     """
@@ -263,19 +359,23 @@ def list_calendars(service):
     json for cookies. The returned list is sorted to have
     the primary calendar first, and selected (that is, displayed in
     Google Calendars web app) calendars before unselected calendars.
-    :param service:
+    :param service: a google 'service' object
+    :return: a sorted list of calendars
     """
     app.logger.debug("Entering list_calendars")
-    calendar_list = service.calendarList().list().execute()["items"]
+    calendar_list = service.calendarList().list().execute()
     result = []
-    for cal in calendar_list:
+
+    for cal in calendar_list["items"]:
         kind = cal["kind"]
         cal_id = cal["id"]
+
         if "description" in cal:
             desc = cal["description"]
         else:
             desc = "(no description)"
         summary = cal["summary"]
+
         # Optional binary attributes with False as default
         selected = ("selected" in cal) and cal["selected"]
         primary = ("primary" in cal) and cal["primary"]
@@ -287,6 +387,7 @@ def list_calendars(service):
              "selected": selected,
              "primary": primary
              })
+
     return sorted(result, key=cal_sort_key)
 
 
@@ -295,7 +396,8 @@ def cal_sort_key(cal):
     Sort key for the list of calendars:  primary calendar first,
     then other selected calendars, then unselected calendars.
     (" " sorts before "X", and tuples are compared piecewise)
-    :param cal:
+    :param cal: a calendars
+    :return: the sorted calendar
     """
     if cal["selected"]:
         selected_key = " "
@@ -305,6 +407,7 @@ def cal_sort_key(cal):
         primary_key = " "
     else:
         primary_key = "X"
+
     return primary_key, selected_key, cal["summary"]
 
 
@@ -326,6 +429,15 @@ def format_arrow_time(time):
         return normal.format("HH:mm")
     except:
         return "(bad time)"
+
+
+@app.template_filter('fmtdatetime')
+def format_arrow_date_time(date_time):
+    try:
+        normal = arrow.get(date_time)
+        return normal.format("HH:mm, dddd, DD MMMM YYYY")
+    except:
+        return "(bad date)"
 
 
 def main():

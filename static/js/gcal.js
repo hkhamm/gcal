@@ -11,9 +11,3 @@ $(function() {
     }
   });
 });
-
-
-$('input[name="calendar"]').click(function() {
-  var calId = $(this).val();
-  console.log(calId);
-});
