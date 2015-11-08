@@ -445,7 +445,7 @@ def format_arrow_time(time):
 def format_arrow_date_time(date_time):
     try:
         normal = arrow.get(date_time)
-        return normal.format("HH:mm, dddd, DD MMMM YYYY")
+        return normal.format("HH:mm, dddd, MM/DD/YYYY")
     except:
         return "(bad date)"
 
