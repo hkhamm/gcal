@@ -14,4 +14,4 @@ PORT = 7420  # random.randint(5000, 8000)
 DEBUG = False  # Because it's unsafe to run outside localhost
 
 # both
-GOOGLE_LICENSE_KEY = ''
+GOOGLE_LICENSE_KEY = '.client_secret.json'
