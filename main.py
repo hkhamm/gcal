@@ -21,6 +21,9 @@ import CONFIG
 
 # Globals
 app = flask.Flask(__name__)
+app.secret_key = str(uuid.uuid4())
+app.debug = CONFIG.DEBUG
+app.logger.setLevel(logging.DEBUG)
 
 SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
 CLIENT_SECRET_FILE = CONFIG.GOOGLE_LICENSE_KEY  # You'll need this
@@ -461,4 +464,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    import uuid
+
+    app.secret_key = str(uuid.uuid4())
+    app.debug = CONFIG.DEBUG
+    app.logger.setLevel(logging.DEBUG)
+    app.run(port=CONFIG.PORT)
