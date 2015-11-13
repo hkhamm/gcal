@@ -4,6 +4,7 @@ from flask import request
 from flask import url_for
 import json
 import logging
+import uuid
 
 # Date handling
 import arrow  # Replacement for datetime, based on moment.js
