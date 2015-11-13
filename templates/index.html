@@ -71,7 +71,7 @@ action.
 {% endif %}
 
 {# Shows the date range picker #}
-<form action="/set-range" method="post">
+<form action="{{ url_for('set_range') }}" method="post">
   <div class="form-group">
     <label for="daterange">Date Range</label>
     <input class="form-control pull-down" type="text" id="daterange"
