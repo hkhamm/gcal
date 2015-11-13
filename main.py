@@ -86,7 +86,7 @@ def get_busy_times():
 #      redirect to OAuth server first, and may take multiple
 #      trips through the oauth2 callback function.
 #
-#  Protocol for use ON EACH REQUEST: 
+#  Protocol for use ON EACH REQUEST:
 #     First, check for valid credentials
 #     If we don't have valid credentials
 #         Get credentials (jump to the oauth2 protocol)
@@ -99,7 +99,7 @@ def get_busy_times():
 #  from the Google services. Service objects are NOT serializable ---
 #  we can't stash one in a cookie.  Instead, on each request we
 #  get a fresh service object from our credentials, which are
-#  serializable. 
+#  serializable.
 #
 #  Note that after authorization we always redirect to /choose;
 #  If this is unsatisfactory, we'll need a session variable to use
@@ -226,15 +226,6 @@ def set_checked_calendars():
     app.logger.debug("Entering get_busy_times")
     calendars = request.form.getlist('calendar')
 
-    calendar_str = ""
-    len_calendars = len(calendars)
-    for calendar in calendars:
-        if calendars.index(calendar) < len_calendars - 1:
-            calendar_str += calendar + ", "
-        else:
-            calendar_str += calendar
-    # flask.flash("Selected: '{}'".format(calendar_str))
-
     flask.session['checked_calendars'] = calendars
 
     return flask.redirect(flask.url_for("get_busy_times"))
@@ -251,7 +242,7 @@ def clear_session():
 def init_session_values():
     """
     Start with some reasonable defaults for date and time ranges.
-    Note this must be run in app context ... can't call from main. 
+    Note this must be run in app context ... can't call from main.
     """
     # Default date span = tomorrow to 1 week from now
     now = arrow.now('local')
