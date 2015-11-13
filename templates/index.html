@@ -30,6 +30,10 @@
         src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js">
 </script>
 
+<script type="text/javascript">
+  $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+</script>
+
 </head>
 
 <body>
@@ -71,7 +75,7 @@ action.
 {% endif %}
 
 {# Shows the date range picker #}
-<form action="/set-range" method="post">
+<form action=$SCRIPT_ROOT + "/set-range" method="post">
   <div class="form-group">
     <label for="daterange">Date Range</label>
     <input class="form-control pull-down" type="text" id="daterange"
