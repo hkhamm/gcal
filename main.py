@@ -42,7 +42,7 @@ def index():
     return render_template('index.html')
 
 
-@app.route("/choose")
+# @app.route("/choose")
 def choose():
     """
     Renders the index.html page after a choose request.
@@ -188,7 +188,7 @@ def oauth2callback():
         # the main screen
         app.logger.debug("Got credentials")
 
-        return flask.redirect(flask.url_for('choose'))
+        return choose() # flask.redirect(flask.url_for('choose'))
 
 
 #  Option setting:  Buttons or forms that add some
