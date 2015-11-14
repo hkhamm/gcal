@@ -55,7 +55,7 @@ action.
 
 {# Shows the busy times for the selected calendar(s). #}
 {% if session.busy_times is defined %}
-  <form action="/clear-session" method="post">
+  <form action="{{ url_for('clear_session') }}" method="post">
     <label for="busy-times">Events</label>
     <ul class="list-group" id="busy-times">
     {% for event in session.busy_times %}
@@ -103,7 +103,7 @@ action.
 {# Shows the set of calendars from the user. #}
 {% if session.calendars is defined %}
   <hr>
-  <form action="/set-checked-calendars" method="post">
+  <form action="{{ url_for('set_checked_calendars') }}" method="post">
     <label for="calendars">Calendars</label>
     <div class="container-fluid" id="calendars">
       {% set i = 0 %}
