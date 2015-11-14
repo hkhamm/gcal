@@ -218,7 +218,7 @@ def set_range():
         daterange_parts[0], daterange_parts[1],
         flask.session['begin_date'], flask.session['end_date']))
 
-    return choose() # flask.redirect(flask.url_for('choose'))
+    return flask.redirect(flask.url_for("choose"))
 
 
 @app.route('/set-checked-calendars', methods=['POST'])
