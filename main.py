@@ -188,7 +188,7 @@ def oauth2callback():
         # the main screen
         app.logger.debug("Got credentials")
 
-        return choose() # flask.redirect(flask.url_for('choose'))
+        return flask.redirect(flask.url_for('choose'))
 
 
 #  Option setting:  Buttons or forms that add some
