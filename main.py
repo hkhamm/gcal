@@ -327,8 +327,8 @@ def list_busy_times(service):
     app.logger.debug('Entering list_busy_times')
     result_dict = {}
     result = []
-    begin_date = arrow.get(flask.session["begin_date"])
-    end_date = arrow.get(flask.session['end_date'])
+    begin_date = arrow.get(flask.session["begin_date"]).replace(hours=+9)
+    end_date = arrow.get(flask.session['end_date']).replace(hours=+17)
 
     app.logger.debug('Events:')
     for cal_id in flask.session['checked_calendars']:
