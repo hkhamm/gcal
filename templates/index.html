@@ -35,8 +35,7 @@
 <body>
 <div class="container">
 
-<h1>Busy times</h1>
-
+<h1>Busy and Free Times</h1>
 <!--
 If there are any warnings or other messages from a prior action,
 they appear above the rest of the content, just until the next
@@ -56,7 +55,7 @@ action.
 {# Shows the busy times for the selected calendar(s). #}
 {% if session.busy_times is defined %}
   <form action="{{ url_for('clear_session') }}" method="post">
-    <label for="busy-times">Events</label>
+    <label for="busy-times">Busy Times</label>
     <ul class="list-group" id="busy-times">
     {% for event in session.busy_times %}
       <li class="list-group-item">
@@ -74,6 +73,22 @@ action.
   </form>
   <hr>
 {% endif %}
+
+{# Shows the free times for the selected calendar(s).#}
+{#{% if session.free_times is defined %}#}
+{#  <form action="{{ url_for('clear_session') }}" method="post">#}
+{#    <label for="free-times">Free Times</label>#}
+{#    <ul class="list-group" id="free-times">#}
+{#    {% for interval in session.free_times %}#}
+{#      <li class="list-group-item">#}
+{#        {{ interval[0] | fmtdatetime }} - {{ interval[1] | fmtdatetime }}#}
+{#      </li>#}
+{#    {% endfor %}#}
+{#    </ul>#}
+{#    <button type="submit" class="btn btn-default">Clear Session</button>#}
+{#  </form>#}
+{#  <hr>#}
+{#{% endif %}#}
 
 {# Shows the date range picker #}
 <form action="{{ url_for('set_range') }}" method="post">
@@ -135,7 +150,7 @@ action.
         </div>
       </div>
     </div>
-    <button type="submit" class="btn btn-default">Get busy times</button>
+    <button type="submit" class="btn btn-default">Get times</button>
   </form>
 {% endif %}
 
