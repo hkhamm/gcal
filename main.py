@@ -356,11 +356,19 @@ def get_start_end_datetime(event):
 
 
 def get_busy_times(service):
+    """
+    Gets a list of busy times calculated from the user selected calendar's
+    events.
+    :param service: is the Google service from where the calendar is retrieved.
+    :return: a list of busy times in ascending order.
+    """
     app.logger.debug('Entering get_busy_times')
     begin_date = arrow.get(flask.session["begin_date"]).replace(hours=+9)
     end_date = arrow.get(flask.session['end_date']).replace(hours=+17)
     busy_dict = {}
     busy = []
+
+    # TODO refactor because its too complicated
 
     for cal_id in flask.session['checked_calendars']:
         events = service.events().list(calendarId=cal_id).execute()
@@ -458,10 +466,17 @@ def get_busy_times(service):
 
 
 def get_free_times(busy_times):
+    """
+    Gets a list of free times calculated from a list of busy times.
+    :param busy_times: is the list of busy times
+    :return: a list of free times in ascending order.
+    """
     app.logger.debug('Entering get_free_times')
     free_times = []
     is_first = True
     stored_event = arrow.now()
+
+    # TODO refactor using a table
 
     for event in busy_times:
         if is_first:
