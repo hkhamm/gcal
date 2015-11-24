@@ -1,14 +1,14 @@
 import flask
 from flask import render_template
 from flask import request
-from flask import url_for
-import json
+# from flask import url_for
+# import json
 import logging
 import uuid
 
 # Date handling
 import arrow  # Replacement for datetime, based on moment.js
-import datetime  # But we still need time
+# import datetime  # But we still need time
 from dateutil import tz  # For interpreting local times
 
 # OAuth2  - Google library implementation for convenience
@@ -20,6 +20,8 @@ from apiclient import discovery
 
 import CONFIG
 
+from busy_times import get_busy_times, get_events
+
 # Globals
 app = flask.Flask(__name__)
 app.secret_key = str(uuid.uuid4())
@@ -29,8 +31,6 @@ app.logger.setLevel(logging.DEBUG)
 SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
 CLIENT_SECRET_FILE = CONFIG.GOOGLE_LICENSE_KEY  # You'll need this
 APPLICATION_NAME = 'auth0-server'
-START_TIME = 9
-END_TIME = 17
 
 
 # Pages (routed from URLs)
@@ -82,8 +82,6 @@ def get_times():
     gcal_service = get_gcal_service(credentials)
     app.logger.debug("Returned from get_gcal_service")
     flask.session['busy_times'] = list_times(gcal_service)
-    # flask.session['busy_times'], flask.session['free_times'] = list_times(
-    #     gcal_service)
 
     return render_template('index.html')
 
@@ -321,269 +319,19 @@ def next_day(iso_text):
 
 
 #  Functions (NOT pages) that return some information
-def is_available(event):
-    """
-    Checks if the event has the transparency attribute.
-    :param event: is the event to check.
-    :return: True if it is transparent and False if not
-    """
-    try:
-        transparency = event['transparency']
-        available = True
-    except:
-        available = False
-
-    return available
-
-
-def get_start_end_datetime(event):
-    """
-    Gets the event's start and end as arrow objects.
-    :param event: is the event to check.
-    :return: a 2-tuple of the events start and end as an arrow objects.
-    """
-    is_all_day = False
-
-    try:
-        event_start = arrow.get(event['start']['dateTime'])
-        event_end = arrow.get(event['end']['dateTime'])
-    except:
-        event_start = arrow.get(event['start']['date'])
-        event_end = arrow.get(event['end']['date'])
-        is_all_day = True
-
-    return event_start, event_end, is_all_day
-
-
-def get_busy_times(service):
-    """
-    Gets a list of busy times calculated from the user selected calendar's
-    events.
-    :param service: is the Google service from where the calendar is retrieved.
-    :return: a list of busy times in ascending order.
-    """
-    app.logger.debug('Entering get_busy_times')
-    begin_date = arrow.get(flask.session["begin_date"]).replace(hours=+9)
-    end_date = arrow.get(flask.session['end_date']).replace(hours=+17)
-    busy_dict = {}
-    busy = []
-
-    # TODO refactor because its too complicated
-
-    for cal_id in flask.session['checked_calendars']:
-        events = service.events().list(calendarId=cal_id).execute()
-        for event in events['items']:
-            available = is_available(event)
-            event_start, event_end, is_all_day = get_start_end_datetime(event)
-            day_start = event_start.replace(hour=START_TIME, minute=0)
-            day_end = event_end.replace(hour=END_TIME, minute=0)
-
-            # Catches events start after begin time or end before end time
-            if ((event_start >= begin_date or event_end <= end_date) and
-                    not available and not is_all_day and
-                    event_start < day_end and event_end > day_start):
-                if event_start < day_start:
-                    event['start']['dateTime'] = day_start.isoformat()
-                if event_end > day_end:
-                    event['end']['dateTime'] = day_end.isoformat()
-
-                busy_dict[event_start.isoformat()] = event
-
-            # Catches all day events between beginning and ending times
-            if (event_start >= begin_date and event_end <= end_date and
-                    not available and is_all_day and
-                    event_start < day_end and event_end > day_start):
-                tmp = arrow.get(event['start']['date'])
-                tmp = tmp.replace(hour=START_TIME, minute=0).isoformat()
-                event['start']['dateTime'] = tmp
-                tmp = arrow.get(event['end']['date'])
-                tmp = tmp.replace(days=-1, hour=END_TIME, minute=0).isoformat()
-                event['end']['dateTime'] = tmp
-
-                busy_dict[event_start.isoformat()] = event
-
-            # Catches events that start before beginning datetime and end
-            # before or after the ending datetime
-            if (event_start < begin_date < event_end and
-                    not available):
-                try:
-                    start_tmp = arrow.get(event['start']['dateTime'])
-                    end_tmp = arrow.get(event['end']['dateTime'])
-                except:
-                    start_tmp = arrow.get(event['start']['date'])
-                    end_tmp = arrow.get(event['end']['date'])
-
-                start_tmp = start_tmp.replace(hour=START_TIME,
-                                              minute=0).isoformat()
-                end_tmp = end_tmp.isoformat()
-                event['start']['dateTime'] = start_tmp
-                event['end']['dateTime'] = end_tmp
-
-                busy_dict[event_start.isoformat()] = event
-
-            # Catches all day events events that start before beginning datetime
-            # and end before or after the ending datetime
-            if (event_start < begin_date < event_end and
-                    not available and is_all_day):
-                try:
-                    start_tmp = arrow.get(event['start']['dateTime'])
-                    end_tmp = arrow.get(event['end']['dateTime'])
-                except:
-                    start_tmp = arrow.get(event['start']['date'])
-                    end_tmp = arrow.get(event['end']['date'])
-
-                start_tmp = start_tmp.replace(hour=START_TIME,
-                                              minute=0,
-                                              tzinfo=tz.tzlocal()).isoformat()
-                end_tmp = end_tmp.replace(days=-1, hour=END_TIME,
-                                          minute=0,
-                                          tzinfo=tz.tzlocal()).isoformat()
-                event['start']['dateTime'] = start_tmp
-                event['end']['dateTime'] = end_tmp
-
-                busy_dict[event_start.isoformat()] = event
-
-    # check for all day events, remove other events that overlap with it
-    remove_list = []
-    for i in sorted(busy_dict):
-        event = busy_dict[i]
-
-        # if event is all day
-        if 'date' in event['start']:
-            this_day = arrow.get(event['start']['dateTime']).format('dddd')
-            this_day_end = arrow.get(event['end']['dateTime'])
-
-            for j in sorted(busy_dict):
-                other_event = busy_dict[j]
-
-                if event != other_event:
-                    other_day = arrow.get(
-                        other_event['start']['dateTime']).format('dddd')
-
-                    if this_day == other_day:
-                        remove_list.append(other_event)
-
-                    other_day_end = arrow.get(other_event['end']['dateTime'])
-
-                    if this_day_end == other_day_end:
-                        remove_list.append(other_event)
-
-        if event not in remove_list:
-            busy.append(busy_dict[i])
-
-    return busy
-
-
-def get_free_times(busy_times):
-    """
-    Gets a list of free times calculated from a list of busy times.
-    :param busy_times: is the list of busy times
-    :return: a list of free times in ascending order.
-    """
-    app.logger.debug('Entering get_free_times')
-    free_times = []
-    is_first = True
-    stored_event = arrow.now()
-
-    # TODO refactor using a table
-
-    for event in busy_times:
-        if is_first:
-            stored_event = event
-
-        event_start = arrow.get(event['start']['dateTime'])
-        event_end = arrow.get(event['end']['dateTime'])
-        start_time = int(event_start.format('HHmm'))
-        end_time = int(event_end.format('HHmm'))
-        event_day = int(arrow.get(
-            event['start']['dateTime']).format('YYYYMMDD'))
-        day_start = arrow.get(
-            event['start']['dateTime']).replace(hour=START_TIME, minute=0)
-        stored_event_day = int(arrow.get(
-            stored_event['start']['dateTime']).format('YYYYMMDD'))
-        stored_event_end = stored_event['end']['dateTime']
-
-        if start_time == 900 and end_time == 1700:
-            stored_event = event
-        elif start_time == 900 and end_time < 1700:
-            if not is_first:
-                if stored_event_day < event_day:
-                    prev_day_end = arrow.get(
-                        stored_event['end']['dateTime']).replace(hour=END_TIME,
-                                                                 minute=0)
-                    free_times.append((stored_event_end,
-                                       prev_day_end.isoformat()))
-                    print('1 {} - {}'.format(stored_event_end,
-                                             prev_day_end.isoformat()))
-            else:
-                is_first = False
-            stored_event = event
-        elif start_time > 900 and end_time < 1700:
-            if not is_first:
-                if stored_event_day < event_day:
-                    prev_day_end = arrow.get(
-                        stored_event['end']['dateTime']).replace(hour=END_TIME,
-                                                                 minute=0)
-                    free_times.append((stored_event_end,
-                                       prev_day_end.isoformat()))
-                    print('2 {} - {}'.format(stored_event_end,
-                                             prev_day_end.isoformat()))
-                if event_day != stored_event_day:
-                    free_times.append((day_start.isoformat(),
-                                       event_start.isoformat()))
-                    print('3 {} - {}'.format(day_start.isoformat(),
-                                             event_start.isoformat()))
-                elif event_day == stored_event_day:
-                    free_times.append((stored_event_end,
-                                       event_start.isoformat()))
-                    print('4 {} - {}'.format(stored_event_end,
-                                             event_start.isoformat()))
-            else:
-                is_first = False
-            stored_event = event
-        elif start_time > 900 and end_time == 1700:
-            if not is_first:
-                if stored_event_day < event_day:
-                    prev_day_end = arrow.get(
-                        stored_event['end']['dateTime']).replace(hour=END_TIME,
-                                                                 minute=0)
-                    free_times.append((stored_event_end,
-                                       prev_day_end.isoformat()))
-                    print('5 {} - {}'.format(stored_event_end,
-                                             prev_day_end.isoformat()))
-                if event_day != stored_event_day:
-                    free_times.append((day_start.isoformat(),
-                                       event_start.isoformat()))
-                    print('6 {} - {}'.format(day_start.isoformat(),
-                                             event_start.isoformat()))
-                elif event_day == stored_event_day:
-                    free_times.append((stored_event_end,
-                                       event_start.isoformat()))
-                    print('7 {} - {}'.format(stored_event_end,
-                                             event_start.isoformat()))
-            else:
-                is_first = False
-            stored_event = event
-
-    print()
-
-    return free_times
-
-
 def list_times(service):
     """
     Lists the times from the selected calendar in ascending order.
     :param service: a google 'service' object
-    :return: a sorted list of times for the selected calendar(s)
+    :return: busy is a sorted list of busy times and free is a sorted list of
+    free times for the selected calendar(s)
     """
     app.logger.debug('Entering list_times')
 
-    busy_times = get_busy_times(service)
+    events = get_events(service)
+    busy = get_busy_times(events)
 
-    # free_times = get_free_times(busy_times)
-    #
-    # return busy_times, free_times
-    return busy_times
+    return busy
 
 
 def list_calendars(service):
@@ -605,10 +353,6 @@ def list_calendars(service):
         kind = cal["kind"]
         cal_id = cal["id"]
 
-        # if "description" in cal:
-        #     desc = cal["description"]
-        # else:
-        #     desc = "(no description)"
         summary = cal["summary"]
 
         # Optional binary attributes with False as default
